@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        #chat-container {
+            width: 90%;
+            max-width: 600px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #messages {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            border-bottom: 1px solid #ddd;
+        }
+        #messages p {
+            margin: 8px 0;
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+        .system-message {
+            text-align: center;
+            font-style: italic;
+            color: #888;
+        }
+        #message-input {
+            display: flex;
+            padding: 10px;
+        }
+        #message-input input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #message-input button {
+            margin-left: 10px;
+            padding: 8px 16px;
+            background-color: #0b93f6;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #message-input button:hover {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat-container">
+    <div id="messages"></div>
+    <div id="message-input">
+        <input type="text" id="message" placeholder="Type a message..." autocomplete="off">
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    let ws;
+    const messagesDiv = document.getElementById('messages');
+
+    function joinChat() {
+        const username = prompt("Enter your username:");
+        const groupID = prompt("Enter the chat group ID:");
+
+        if (!username || !groupID) {
+            alert("Username and chat group ID are required to join!");
+            return;
+        }
+
+        const wsURL = `ws://${window.location.host}/api/chat_group/join/${groupID}?username=${encodeURIComponent(username)}`;
+        ws = new WebSocket(wsURL);
+
+        ws.onopen = () => {
+            addSystemMessage("Connected to chat group.");
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            displayMessage(msg.username, msg.content);
+        };
+
+        ws.onclose = () => {
+            addSystemMessage("Disconnected from chat group.");
+        };
+    }
+
+    function sendMessage() {
+        const messageInput = document.getElementById('message');
+        const message = messageInput.value.trim();
+        if (message && ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ content: message }));
+            messageInput.value = "";
+        }
+    }
+
+    function displayMessage(username, content) {
+        const msgElement = document.createElement('p');
+        msgElement.textContent = `${username}: ${content}`;
+        messagesDiv.appendChild(msgElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function addSystemMessage(content) {
+        const msgElement = document.createElement('p');
+        msgElement.textContent = content;
+        msgElement.classList.add('system-message');
+        messagesDiv.appendChild(msgElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Automatically join chat on page load for demo purposes.
+    window.onload = joinChat;
+</script>
+
+</body>
+</html>
